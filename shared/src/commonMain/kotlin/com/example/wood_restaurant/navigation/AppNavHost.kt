@@ -8,7 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.wood_restaurant.ui.DetailScreen
-import com.example.wood_restaurant.ui.HomeScreen
+import com.example.wood_restaurant.ui.main.MainScreen
 
 @Composable
 fun AppNavHost(
@@ -17,11 +17,11 @@ fun AppNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = HomeRoute,
+        startDestination = MainRoute,
         modifier = modifier,
     ) {
-        composable<HomeRoute> {
-            HomeScreen(
+        composable<MainRoute> {
+            MainScreen(
                 onPostClick = { id -> navController.navigate(DetailRoute(postId = id)) },
             )
         }

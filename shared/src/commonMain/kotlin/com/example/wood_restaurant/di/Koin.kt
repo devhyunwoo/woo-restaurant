@@ -8,6 +8,7 @@ import com.example.wood_restaurant.data.remote.RestaurantApi
 import com.example.wood_restaurant.data.remote.createRestaurantApi
 import com.example.wood_restaurant.network.createHttpClient
 import com.example.wood_restaurant.network.createKtorfit
+import com.example.wood_restaurant.ui.main.MainViewModel
 import de.jensklingenberg.ktorfit.Ktorfit
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.singleOf
@@ -27,6 +28,7 @@ val appModule = module {
     singleOf(::AppPreferences)
     singleOf(::Greeting)
     viewModelOf(::GreetingViewModel)
+    viewModelOf(::MainViewModel)
 }
 
 /**
