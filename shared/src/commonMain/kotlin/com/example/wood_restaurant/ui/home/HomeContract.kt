@@ -28,7 +28,8 @@ data class HomeState(
     val errorMessage: String? = null,
     val isFilterSheetOpen: Boolean = false,
 ) {
-    val places: List<Restaurant> get() = allPlaces.applyFilter(filter)
+    /** 상태 인스턴스당 한 번만 계산한다. 한 컴포지션에서 여러 번 읽히기 때문. */
+    val places: List<Restaurant> by lazy { allPlaces.applyFilter(filter) }
 
     val selectedPlace: Restaurant? get() = places.firstOrNull { it.id == selectedPlaceId }
 

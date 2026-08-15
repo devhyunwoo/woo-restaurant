@@ -102,10 +102,9 @@ kotlin {
             version = libs.versions.naverMapIos.get()
             extraOpts += listOf("-compiler-option", "-fmodules")
         }
-        // NMGLatLng 등 기하 타입은 별도 모듈이라 따로 cinterop 해야 Kotlin에서 보인다.
-        pod("NMapsGeometry") {
-            extraOpts += listOf("-compiler-option", "-fmodules")
-        }
+        // NMapsGeometry는 NMapsMap의 의존 pod이라 CocoaPods가 알아서 링크한다.
+        // NMGLatLng 같은 타입도 -fmodules 덕에 NMapsMap cinterop에 함께 들어오므로 따로 선언하지 않는다.
+        // (따로 pod()을 걸면 같은 이름의 Kotlin 타입이 두 개 생겨 타입 불일치가 난다.)
     }
 
     androidLibrary {

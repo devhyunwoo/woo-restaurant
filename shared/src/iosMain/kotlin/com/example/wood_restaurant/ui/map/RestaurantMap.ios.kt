@@ -8,13 +8,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
-import cocoapods.NMapsGeometry.NMGLatLng
 import cocoapods.NMapsMap.NMFCameraUpdate
 import cocoapods.NMapsMap.NMFMapView
 import cocoapods.NMapsMap.NMFMapViewCameraDelegateProtocol
 import cocoapods.NMapsMap.NMFMapViewTouchDelegateProtocol
 import cocoapods.NMapsMap.NMFMarker
 import cocoapods.NMapsMap.NMFNaverMapView
+import cocoapods.NMapsMap.NMGLatLng
 import cocoapods.NMapsMap.NMF_MARKER_IMAGE_BLACK
 import com.example.wood_restaurant.domain.LatLng
 import com.example.wood_restaurant.domain.Restaurant
@@ -28,7 +28,9 @@ import platform.darwin.NSObject
  * NMapsMap(NMFNaverMapView)을 Compose에 얹는다.
  *
  * 마커는 Compose가 아니라 [NaverMapController]가 직접 관리한다.
- * 오버레이 하나하나를 리컴포지션에 맡기면 지도가 매번 다시 그려져 성능이 나빠진다.
+ * 오버레이 하나하나를 리컴포지션에 맡기면 매번 지도를 다시 그리게 되어 손해다.
+ *
+ * cinterop이 만든 바인딩에서 Objective-C 프로퍼티는 전부 `x()` / `setX()` 함수 쌍으로 나온다.
  */
 @OptIn(ExperimentalForeignApi::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -52,10 +54,10 @@ actual fun RestaurantMap(
     UIKitView(
         factory = { controller.createView(cameraTarget, zoom) },
         modifier = modifier,
-        update = { controller.update(cameraTarget, zoom, places, selectedPlaceId) },
+        update = { controller.update(cameraTarget, places, selectedPlaceId) },
         onRelease = { controller.release() },
         properties = UIKitInteropProperties(
-            // 지도 제스처가 Compose에 먹히지 않도록 터치를 네이티브 뷰에 넘긴다.
+            // 지도 제스처가 Compose에 가로채이지 않도록 터치를 네이티브 뷰에 넘긴다.
             interactionMode = UIKitInteropInteractionMode.NonCooperative,
         ),
     )
@@ -71,30 +73,29 @@ private class NaverMapController {
     private var naverMapView: NMFNaverMapView? = null
     private val markers = mutableMapOf<String, NMFMarker>()
     private var lastCameraTarget: LatLng? = null
-    private var lastSelectedId: String? = null
 
-    // 델리게이트는 weak 참조로 보관되므로 여기서 강하게 붙잡는다.
+    // 델리게이트는 weak 참조로 보관되므로 여기서 강하게 붙잡아야 콜백이 온다.
     private var cameraDelegate: NMFMapViewCameraDelegateProtocol? = null
     private var touchDelegate: NMFMapViewTouchDelegateProtocol? = null
 
     fun createView(cameraTarget: LatLng, zoom: Double): NMFNaverMapView {
         val view = NMFNaverMapView()
-        view.showCompass = false
-        view.showScaleBar = false
-        view.showZoomControls = false
-        view.showLocationButton = false
+        view.setShowCompass(false)
+        view.setShowScaleBar(false)
+        view.setShowZoomControls(false)
+        view.setShowLocationButton(false)
 
-        val mapView = view.mapView
-        mapView.rotateGestureEnabled = false
-        mapView.tiltGestureEnabled = false
+        val mapView = view.mapView()
+        mapView.setRotateGestureEnabled(false)
+        mapView.setTiltGestureEnabled(false)
         mapView.moveCamera(
             NMFCameraUpdate.cameraUpdateWithScrollTo(cameraTarget.toNMG(), zoomTo = zoom)
         )
 
         val camera = object : NSObject(), NMFMapViewCameraDelegateProtocol {
             override fun mapViewCameraIdle(mapView: NMFMapView) {
-                val target = mapView.cameraPosition.target
-                onCameraMoved(LatLng(latitude = target.lat, longitude = target.lng))
+                val target = mapView.cameraPosition().target()
+                onCameraMoved(LatLng(latitude = target.lat(), longitude = target.lng()))
             }
         }
         val touch = object : NSObject(), NMFMapViewTouchDelegateProtocol {
@@ -105,7 +106,7 @@ private class NaverMapController {
         cameraDelegate = camera
         touchDelegate = touch
         mapView.addCameraDelegate(delegate = camera)
-        mapView.touchDelegate = touch
+        mapView.setTouchDelegate(touch)
 
         naverMapView = view
         lastCameraTarget = cameraTarget
@@ -114,19 +115,17 @@ private class NaverMapController {
 
     fun update(
         cameraTarget: LatLng,
-        zoom: Double,
         places: List<Restaurant>,
         selectedPlaceId: String?,
     ) {
         val view = naverMapView ?: return
-        val mapView = view.mapView
+        val mapView = view.mapView()
 
-        // cameraTarget이 실제로 바뀌었을 때만 카메라를 움직인다(사용자 팬을 되돌리지 않기 위해).
+        // cameraTarget이 실제로 바뀌었을 때만 움직인다(사용자 팬을 되돌리지 않기 위해).
+        // 줌은 최초 생성 때만 지정한다. 여기서 다시 주면 사용자가 맞춰둔 배율이 되돌아간다.
         if (cameraTarget != lastCameraTarget) {
             lastCameraTarget = cameraTarget
-            mapView.moveCamera(
-                NMFCameraUpdate.cameraUpdateWithScrollTo(cameraTarget.toNMG(), zoomTo = zoom)
-            )
+            mapView.moveCamera(NMFCameraUpdate.cameraUpdateWithScrollTo(cameraTarget.toNMG()))
         }
 
         val wanted = places.associateBy { it.id }
@@ -141,32 +140,32 @@ private class NaverMapController {
             val selected = id == selectedPlaceId
             val marker = markers.getOrPut(id) {
                 NMFMarker().also { created ->
-                    created.iconImage = NMF_MARKER_IMAGE_BLACK
-                    created.captionText = place.name
-                    created.captionMinZoom = 14.0
-                    created.touchHandler = { _ ->
+                    created.setIconImage(NMF_MARKER_IMAGE_BLACK)
+                    created.setCaptionText(place.name)
+                    created.setCaptionMinZoom(14.0)
+                    created.setTouchHandler { _ ->
                         onPlaceClick(place)
                         true
                     }
                     created.setMapView(mapView)
                 }
             }
-            marker.position = place.position.toNMG()
-            marker.iconTintColor = (if (selected) SelectedMarkerColor else place.category.markerColor).toUIColor()
-            marker.width = if (selected) 32.0 else 24.0
-            marker.height = if (selected) 42.0 else 32.0
-            marker.zIndex = if (selected) 100 else 0
+            marker.setPosition(place.position.toNMG())
+            marker.setIconTintColor(
+                (if (selected) SelectedMarkerColor else place.category.markerColor).toUIColor()
+            )
+            marker.setWidth(if (selected) 32.0 else 24.0)
+            marker.setHeight(if (selected) 42.0 else 32.0)
+            marker.setZIndex(if (selected) 100L else 0L)
         }
-
-        lastSelectedId = selectedPlaceId
     }
 
     fun release() {
         markers.values.forEach { it.setMapView(null) }
         markers.clear()
-        naverMapView?.mapView?.let { mapView ->
+        naverMapView?.mapView()?.let { mapView ->
             cameraDelegate?.let { mapView.removeCameraDelegate(delegate = it) }
-            mapView.touchDelegate = null
+            mapView.setTouchDelegate(null)
         }
         cameraDelegate = null
         touchDelegate = null
@@ -175,7 +174,7 @@ private class NaverMapController {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private fun LatLng.toNMG(): NMGLatLng = NMGLatLng.latLngWithLat(latitude, lng = longitude)
+private fun LatLng.toNMG(): NMGLatLng = NMGLatLng.latLngWithLat(lat = latitude, lng = longitude)
 
 private fun Color.toUIColor(): UIColor = UIColor.colorWithRed(
     red = red.toDouble(),

@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.example.wood_restaurant.domain.Restaurant
 import com.example.wood_restaurant.location.rememberLocationPermissionState
 import com.example.wood_restaurant.ui.home.components.FilterBar
 import com.example.wood_restaurant.ui.home.components.RestaurantRow
@@ -180,7 +181,7 @@ private fun MapSection(
 @Composable
 private fun ResultSection(
     state: HomeState,
-    onPlaceClick: (com.example.wood_restaurant.domain.Restaurant) -> Unit,
+    onPlaceClick: (Restaurant) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -203,7 +204,15 @@ private fun ResultSection(
 
             places.isEmpty() -> {
                 Text(
-                    text = "조건에 맞는 장소가 없습니다.\n반경을 넓히거나 필터를 줄여보세요.",
+                    // 지역명 없이 검색하면 지역검색 API가 전국 결과를 주므로 반경 필터에 전부 걸린다.
+                    // 원인을 알 수 있게 그대로 알려준다.
+                    text = if (state.regionName == null) {
+                        "조건에 맞는 장소가 없습니다.\n" +
+                            "지역명을 못 구해 전국 대상으로 검색했습니다. " +
+                            "검색창에 지역명(예: 강남역)을 넣거나 리버스 지오코딩 키를 설정하세요."
+                    } else {
+                        "조건에 맞는 장소가 없습니다.\n반경을 넓히거나 필터를 줄여보세요."
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
