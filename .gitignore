@@ -18,5 +18,9 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 
+# CocoaPods (Kotlin cocoapods 플러그인이 pod install을 대신 돌려준다)
+iosApp/Pods/
+shared/shared.podspec
+
 # Claude Code local settings
 .claude/
