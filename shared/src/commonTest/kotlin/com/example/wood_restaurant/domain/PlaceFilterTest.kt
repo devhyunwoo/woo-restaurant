@@ -96,6 +96,15 @@ class PlaceFilterTest {
             2,
             PlaceFilter(sort = SortOption.RATING, radius = SearchRadius.R_3000).activeCount,
         )
+        assertEquals(1, PlaceFilter(favoritesOnly = true).activeCount)
+    }
+
+    @Test
+    fun `applyRadius를 끄면 반경 밖 장소도 남는다 - 찜만 보기`() {
+        val result = sample.applyFilter(PlaceFilter(), applyRadius = false)
+
+        // 2.5km 떨어진 c(빵집)도 포함되고 여전히 가까운 순.
+        assertEquals(listOf("b", "d", "a", "c"), result.map { it.id })
     }
 
     @Test

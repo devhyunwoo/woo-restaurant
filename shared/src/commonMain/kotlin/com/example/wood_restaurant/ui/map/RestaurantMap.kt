@@ -25,6 +25,7 @@ expect fun RestaurantMap(
     onPlaceClick: (Restaurant) -> Unit,
     onMapClick: () -> Unit,
     onCameraMoved: (LatLng) -> Unit,
+    isDarkMode: Boolean,
     modifier: Modifier,
 )
 

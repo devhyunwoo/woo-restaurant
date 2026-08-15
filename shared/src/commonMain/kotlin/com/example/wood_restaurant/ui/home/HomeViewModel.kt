@@ -1,6 +1,8 @@
 package com.example.wood_restaurant.ui.home
 
 import androidx.lifecycle.ViewModel
+import com.example.wood_restaurant.data.AppPreferences
+import com.example.wood_restaurant.data.FavoritesRepository
 import com.example.wood_restaurant.data.PlaceRepository
 import com.example.wood_restaurant.domain.LatLng
 import com.example.wood_restaurant.domain.MinRating
@@ -14,6 +16,7 @@ import com.example.wood_restaurant.location.LocationProvider
 import org.orbitmvi.orbit.ContainerHost
 import org.orbitmvi.orbit.syntax.Syntax
 import org.orbitmvi.orbit.viewmodel.container
+import kotlin.random.Random
 
 private typealias HomeSyntax = Syntax<HomeState, HomeSideEffect>
 
@@ -22,10 +25,32 @@ private const val RESEARCH_THRESHOLD_METERS = 300.0
 
 class HomeViewModel(
     private val repository: PlaceRepository,
+    private val favoritesRepository: FavoritesRepository,
     private val locationProvider: LocationProvider,
+    private val preferences: AppPreferences,
 ) : ViewModel(), ContainerHost<HomeState, HomeSideEffect> {
 
-    override val container = container<HomeState, HomeSideEffect>(HomeState())
+    override val container = container<HomeState, HomeSideEffect>(initialState())
+
+    init {
+        // 찜 목록은 저장소가 진실의 원천. 바뀔 때마다 상태에 반영한다.
+        intent {
+            favoritesRepository.favorites.collect { favorites ->
+                reduce { state.copy(favorites = favorites) }
+            }
+        }
+    }
+
+    /** 마지막으로 검색한 위치가 있으면 거기서 시작한다. 권한이 없어도 서울시청 대신 익숙한 곳이 뜬다. */
+    private fun initialState(): HomeState {
+        val start = preferences.lastSearchCenter ?: LatLng.SEOUL_CITY_HALL
+        return HomeState(
+            searchCenter = start,
+            cameraTarget = start,
+            recentKeywords = preferences.recentKeywords,
+            favorites = favoritesRepository.favorites.value,
+        )
+    }
 
     /** 화면 최초 진입. 권한이 있으면 내 위치에서, 없으면 기본 위치에서 검색한다. */
     fun onScreenStarted(hasPermission: Boolean) = intent {
@@ -80,8 +105,8 @@ class HomeViewModel(
             return@intent
         }
         updateFilter { it.copy(categories = next) }
-        // 새로 켠 카테고리는 아직 받아온 적이 없을 수 있으므로 다시 검색한다.
-        if (category !in current) search(state.searchCenter)
+        // 새로 켠 카테고리는 아직 받아온 적이 없을 수 있으므로 다시 검색한다. (찜만 보기 중엔 불필요)
+        if (category !in current && !state.filter.favoritesOnly) search(state.searchCenter)
     }
 
     fun onSortSelected(sort: SortOption) = intent {
@@ -96,23 +121,38 @@ class HomeViewModel(
         updateFilter { it.copy(minRating = minRating) }
     }
 
+    fun onFavoritesOnlyToggled() = intent {
+        val turningOn = !state.filter.favoritesOnly
+        if (turningOn && state.favorites.isEmpty()) {
+            postSideEffect(HomeSideEffect.ShowMessage("아직 찜한 곳이 없어요. 하트를 눌러 담아보세요"))
+            return@intent
+        }
+        updateFilter { it.copy(favoritesOnly = turningOn) }
+    }
+
     fun onKeywordChanged(keyword: String) = intent {
         updateFilter { it.copy(keyword = keyword) }
     }
 
     fun onKeywordSubmitted() = intent {
-        search(state.searchCenter)
+        submitKeyword()
+    }
+
+    fun onRecentKeywordClick(keyword: String) = intent {
+        updateFilter { it.copy(keyword = keyword) }
+        submitKeyword()
+    }
+
+    fun onRecentKeywordsCleared() = intent {
+        preferences.clearRecentKeywords()
+        reduce { state.copy(recentKeywords = emptyList()) }
     }
 
     fun onFiltersReset() = intent {
         reduce { state.copy(filter = PlaceFilter(), selectedPlaceId = null) }
     }
 
-    fun onFilterSheetOpenChange(open: Boolean) = intent {
-        reduce { state.copy(isFilterSheetOpen = open) }
-    }
-
-    // ---- 선택 ----
+    // ---- 선택 · 찜 · 추천 ----
 
     fun onPlaceSelected(place: Restaurant) = intent {
         reduce {
@@ -127,7 +167,40 @@ class HomeViewModel(
         reduce { state.copy(selectedPlaceId = null) }
     }
 
+    fun onFavoriteToggled(place: Restaurant) = intent {
+        val added = favoritesRepository.toggle(place)
+        postSideEffect(
+            HomeSideEffect.ShowMessage(
+                if (added) "${place.name} 찜 완료 ❤️" else "${place.name} 찜 해제"
+            )
+        )
+    }
+
+    /** 지금 보이는 목록에서 하나를 무작위로 골라 준다. */
+    fun onRandomPickClick() = intent {
+        val candidates = state.places
+        if (candidates.isEmpty()) {
+            postSideEffect(HomeSideEffect.ShowMessage("고를 만한 곳이 없어요. 필터를 풀어보세요"))
+            return@intent
+        }
+        // 이미 선택된 곳은 빼서 연타하면 계속 새로운 곳이 나오게 한다.
+        val pool = candidates.filter { it.id != state.selectedPlaceId }.ifEmpty { candidates }
+        val pick = pool[Random.nextInt(pool.size)]
+        reduce { state.copy(selectedPlaceId = pick.id, cameraTarget = pick.position) }
+        postSideEffect(HomeSideEffect.ShowMessage("🎲 오늘은 ${pick.name} 어때요?"))
+    }
+
     // ---- 내부 ----
+
+    private suspend fun HomeSyntax.submitKeyword() {
+        val keyword = state.filter.keyword.trim()
+        if (keyword.isNotEmpty()) {
+            preferences.pushRecentKeyword(keyword)
+            reduce { state.copy(recentKeywords = preferences.recentKeywords) }
+        }
+        // 찜만 보기 중엔 로컬 필터만으로 충분하다. 네트워크는 검색 결과 모드에서만.
+        if (!state.filter.favoritesOnly) search(state.searchCenter)
+    }
 
     private suspend fun HomeSyntax.updateFilter(
         transform: (PlaceFilter) -> PlaceFilter,
@@ -174,6 +247,8 @@ class HomeViewModel(
             return
         }
 
+        preferences.lastSearchCenter = center
+
         reduce {
             state.copy(
                 isLoading = false,
@@ -182,7 +257,7 @@ class HomeViewModel(
                 pendingCenter = null,
             )
         }
-        if (nearby.places.isEmpty()) {
+        if (nearby.places.isEmpty() && !state.filter.favoritesOnly) {
             postSideEffect(HomeSideEffect.ShowMessage("주변에서 찾은 장소가 없습니다"))
         }
     }

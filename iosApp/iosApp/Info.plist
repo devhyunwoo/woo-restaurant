@@ -9,5 +9,10 @@
 	<string>$(NAVER_NCP_KEY_ID)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>주변 식당·카페·빵집을 지도에 보여주기 위해 위치 정보를 사용합니다.</string>
+	<!-- 길찾기: 네이버 지도 앱(nmap://)을 열 수 있는지 확인하기 위해 필요 -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>nmap</string>
+	</array>
 </dict>
 </plist>

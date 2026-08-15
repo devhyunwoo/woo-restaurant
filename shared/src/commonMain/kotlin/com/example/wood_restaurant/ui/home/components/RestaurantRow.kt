@@ -11,16 +11,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.wood_restaurant.domain.Restaurant
@@ -31,7 +32,9 @@ import com.example.wood_restaurant.ui.map.markerColor
 fun RestaurantRow(
     place: Restaurant,
     selected: Boolean,
+    isFavorite: Boolean,
     onClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -45,7 +48,7 @@ fun RestaurantRow(
         ),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -65,7 +68,7 @@ fun RestaurantRow(
                 Text(
                     text = listOfNotNull(
                         place.subCategory.takeIf { it.isNotBlank() },
-                        place.roadAddress.takeIf { it.isNotBlank() } ?: place.address,
+                        place.displayAddress.takeIf { it.isNotBlank() },
                     ).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -75,53 +78,26 @@ fun RestaurantRow(
                 RatingLine(place)
             }
 
-            Text(
-                text = place.distanceLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = place.distanceLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = place.walkingLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            IconButton(onClick = onFavoriteClick) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = if (isFavorite) "찜 해제" else "찜하기",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                )
+            }
         }
     }
-}
-
-/** 별점/리뷰수. 데이터가 없으면(=RatingSource가 null을 주면) 그 사실을 그대로 보여준다. */
-@Composable
-private fun RatingLine(place: Restaurant) {
-    val rating = place.rating
-    val reviewCount = place.reviewCount
-
-    if (rating == null && reviewCount == null) {
-        Text(
-            text = "평점 정보 없음",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
-        )
-        return
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Icon(
-            imageVector = Icons.Filled.Star,
-            contentDescription = null,
-            tint = Color(0xFFF59F00),
-            modifier = Modifier.size(14.dp),
-        )
-        Text(
-            text = rating?.let { formatRating(it) } ?: "–",
-            style = MaterialTheme.typography.labelMedium,
-        )
-        if (reviewCount != null) {
-            Text(
-                text = "리뷰 $reviewCount",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** 소수점 한 자리 고정. KMP 공통 코드에는 String.format이 없다. */
-private fun formatRating(value: Double): String {
-    val tenths = (value * 10).toInt()
-    return "${tenths / 10}.${tenths % 10}"
 }

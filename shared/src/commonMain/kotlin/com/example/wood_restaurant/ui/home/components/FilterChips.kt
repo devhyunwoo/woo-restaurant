@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -38,7 +41,10 @@ import com.example.wood_restaurant.domain.SortOption
 @Composable
 fun FilterBar(
     filter: PlaceFilter,
+    categoryCounts: Map<PlaceCategory, Int>,
+    favoriteCount: Int,
     onCategoryToggled: (PlaceCategory) -> Unit,
+    onFavoritesOnlyToggled: () -> Unit,
     onSortSelected: (SortOption) -> Unit,
     onRadiusSelected: (SearchRadius) -> Unit,
     onMinRatingSelected: (MinRating) -> Unit,
@@ -52,14 +58,34 @@ fun FilterBar(
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // 찜만 보기. 검색 결과 대신 저장된 찜 목록이 소스가 된다.
+        FilterChip(
+            selected = filter.favoritesOnly,
+            onClick = onFavoritesOnlyToggled,
+            label = { Text(if (favoriteCount > 0) "찜 $favoriteCount" else "찜") },
+            leadingIcon = {
+                Icon(
+                    imageVector = if (filter.favoritesOnly) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                )
+            },
+        )
+
         PlaceCategory.entries.forEach { category ->
             val selected = category in filter.categories
+            val count = categoryCounts[category] ?: 0
             FilterChip(
                 selected = selected,
                 onClick = { onCategoryToggled(category) },
-                label = { Text("${category.emoji} ${category.label}") },
+                label = {
+                    Text(
+                        if (count > 0) "${category.emoji} ${category.label} $count"
+                        else "${category.emoji} ${category.label}"
+                    )
+                },
                 leadingIcon = if (selected) {
-                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.padding(0.dp)) }
+                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
                 } else {
                     null
                 },

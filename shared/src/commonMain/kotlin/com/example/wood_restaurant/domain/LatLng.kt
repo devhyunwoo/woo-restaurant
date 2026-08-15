@@ -1,5 +1,6 @@
 package com.example.wood_restaurant.domain
 
+import kotlinx.serialization.Serializable
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -9,6 +10,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** 플랫폼 지도 SDK에 종속되지 않는 좌표 표현. */
+@Serializable
 data class LatLng(
     val latitude: Double,
     val longitude: Double,
@@ -20,6 +22,9 @@ data class LatLng(
 }
 
 private const val EARTH_RADIUS_METERS = 6_371_008.8
+
+/** 보통 걸음 속도. 4km/h ≈ 67m/분. */
+private const val WALKING_METERS_PER_MINUTE = 67.0
 
 /** 두 좌표 사이의 대권 거리(미터). Haversine. */
 fun LatLng.distanceTo(other: LatLng): Double {
@@ -35,5 +40,9 @@ fun formatDistance(meters: Double): String = when {
     meters < 1_000 -> "${meters.roundToInt()}m"
     else -> "${((meters / 100).roundToInt() / 10.0)}km"
 }
+
+/** 도보 소요 시간(분). 1분 미만은 1분으로 올린다. */
+fun walkingMinutes(meters: Double): Int =
+    (meters / WALKING_METERS_PER_MINUTE).roundToInt().coerceAtLeast(1)
 
 private fun Double.toRadians(): Double = this * PI / 180.0

@@ -3,6 +3,7 @@ package com.example.wood_restaurant.di
 import com.example.wood_restaurant.Greeting
 import com.example.wood_restaurant.GreetingViewModel
 import com.example.wood_restaurant.data.AppPreferences
+import com.example.wood_restaurant.data.FavoritesRepository
 import com.example.wood_restaurant.data.PlaceRepository
 import com.example.wood_restaurant.data.RatingSource
 import com.example.wood_restaurant.data.RestaurantRepository
@@ -51,6 +52,7 @@ val networkModule = module {
 val appModule = module {
     includes(platformModule, networkModule)
     singleOf(::AppPreferences)
+    singleOf(::FavoritesRepository)
     singleOf(::Greeting)
 
     // TODO: 자체 백엔드가 붙으면 실제 평점 소스로 교체한다. (EmptyRatingSource로 바꾸면 "정보 없음" 표시)

@@ -26,7 +26,7 @@ enum class MinRating(val value: Double, val label: String) {
 
 /**
  * 홈 화면에서 동시에 걸 수 있는 필터 축.
- * 카테고리(다중) · 정렬 · 반경 · 최소 별점 · 키워드가 모두 AND로 조합된다.
+ * 카테고리(다중) · 정렬 · 반경 · 최소 별점 · 키워드 · 찜만 — 모두 AND로 조합된다.
  */
 data class PlaceFilter(
     val categories: Set<PlaceCategory> = PlaceCategory.entries.toSet(),
@@ -34,6 +34,8 @@ data class PlaceFilter(
     val radius: SearchRadius = SearchRadius.R_1000,
     val minRating: MinRating = MinRating.ANY,
     val keyword: String = "",
+    /** 켜면 검색 결과 대신 찜 목록을 보여준다. 이때 반경은 무시한다(멀어도 내 찜은 보고 싶으니까). */
+    val favoritesOnly: Boolean = false,
 ) {
     /** 기본값과 다른 축이 몇 개인지 — 필터 버튼 배지에 쓴다. */
     val activeCount: Int
@@ -43,14 +45,22 @@ data class PlaceFilter(
             radius != SearchRadius.R_1000,
             minRating != MinRating.ANY,
             keyword.isNotBlank(),
+            favoritesOnly,
         ).count { it }
 }
 
-/** 필터 적용 + 정렬. 순수 함수라 단위 테스트로 검증한다. */
-fun List<Restaurant>.applyFilter(filter: PlaceFilter): List<Restaurant> =
+/**
+ * 필터 적용 + 정렬. 순수 함수라 단위 테스트로 검증한다.
+ *
+ * @param applyRadius false면 반경 조건을 건너뛴다(찜만 보기).
+ */
+fun List<Restaurant>.applyFilter(
+    filter: PlaceFilter,
+    applyRadius: Boolean = true,
+): List<Restaurant> =
     asSequence()
         .filter { it.category in filter.categories }
-        .filter { it.distanceMeters <= filter.radius.meters }
+        .filter { !applyRadius || it.distanceMeters <= filter.radius.meters }
         .filter { filter.minRating == MinRating.ANY || (it.rating ?: 0.0) >= filter.minRating.value }
         .filter { place ->
             filter.keyword.isBlank() ||

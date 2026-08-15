@@ -42,6 +42,7 @@ actual fun RestaurantMap(
     onPlaceClick: (Restaurant) -> Unit,
     onMapClick: () -> Unit,
     onCameraMoved: (LatLng) -> Unit,
+    isDarkMode: Boolean,
     modifier: Modifier,
 ) {
     val controller = remember { NaverMapController() }
@@ -52,9 +53,9 @@ actual fun RestaurantMap(
     controller.onCameraMoved = onCameraMoved
 
     UIKitView(
-        factory = { controller.createView(cameraTarget, zoom) },
+        factory = { controller.createView(cameraTarget, zoom, isDarkMode) },
         modifier = modifier,
-        update = { controller.update(cameraTarget, places, selectedPlaceId) },
+        update = { controller.update(cameraTarget, places, selectedPlaceId, isDarkMode) },
         onRelease = { controller.release() },
         properties = UIKitInteropProperties(
             // 지도 제스처가 Compose에 가로채이지 않도록 터치를 네이티브 뷰에 넘긴다.
@@ -78,7 +79,7 @@ private class NaverMapController {
     private var cameraDelegate: NMFMapViewCameraDelegateProtocol? = null
     private var touchDelegate: NMFMapViewTouchDelegateProtocol? = null
 
-    fun createView(cameraTarget: LatLng, zoom: Double): NMFNaverMapView {
+    fun createView(cameraTarget: LatLng, zoom: Double, isDarkMode: Boolean): NMFNaverMapView {
         val view = NMFNaverMapView()
         view.setShowCompass(false)
         view.setShowScaleBar(false)
@@ -88,6 +89,7 @@ private class NaverMapController {
         val mapView = view.mapView()
         mapView.setRotateGestureEnabled(false)
         mapView.setTiltGestureEnabled(false)
+        mapView.setNightModeEnabled(isDarkMode)
         mapView.moveCamera(
             NMFCameraUpdate.cameraUpdateWithScrollTo(cameraTarget.toNMG(), zoomTo = zoom)
         )
@@ -117,9 +119,12 @@ private class NaverMapController {
         cameraTarget: LatLng,
         places: List<Restaurant>,
         selectedPlaceId: String?,
+        isDarkMode: Boolean,
     ) {
         val view = naverMapView ?: return
         val mapView = view.mapView()
+
+        if (mapView.isNightModeEnabled() != isDarkMode) mapView.setNightModeEnabled(isDarkMode)
 
         // cameraTarget이 실제로 바뀌었을 때만 움직인다(사용자 팬을 되돌리지 않기 위해).
         // 줌은 최초 생성 때만 지정한다. 여기서 다시 주면 사용자가 맞춰둔 배율이 되돌아간다.

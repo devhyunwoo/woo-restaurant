@@ -35,6 +35,7 @@ actual fun RestaurantMap(
     onPlaceClick: (Restaurant) -> Unit,
     onMapClick: () -> Unit,
     onCameraMoved: (LatLng) -> Unit,
+    isDarkMode: Boolean,
     modifier: Modifier,
 ) {
     val cameraPositionState = rememberCameraPositionState {
@@ -60,7 +61,10 @@ actual fun RestaurantMap(
     NaverMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
-        properties = MapProperties(locationTrackingMode = LocationTrackingMode.NoFollow),
+        properties = MapProperties(
+            locationTrackingMode = LocationTrackingMode.NoFollow,
+            isNightModeEnabled = isDarkMode,
+        ),
         uiSettings = MapUiSettings(
             isLocationButtonEnabled = false,
             isZoomControlEnabled = false,
