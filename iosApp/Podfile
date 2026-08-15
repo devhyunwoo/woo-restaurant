@@ -1,0 +1,8 @@
+platform :ios, '18.2'
+
+target 'iosApp' do
+  use_frameworks!
+
+  # Kotlin Multiplatform shared 모듈. ./gradlew :shared:podspec 로 podspec이 생성된다.
+  pod 'shared', :path => '../shared'
+end

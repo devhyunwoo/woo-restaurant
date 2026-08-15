@@ -5,3 +5,8 @@ PRODUCT_BUNDLE_IDENTIFIER=com.example.wood_restaurant.Woodrestaurant$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0
+
+// 네이버 클라우드 플랫폼 지도 Key ID. Info.plist의 NMFNcpKeyId로 주입된다.
+// Android쪽 local.properties의 naver.ncpKeyId와 같은 값을 넣으면 된다.
+// 커밋하고 싶지 않으면 이 파일을 .gitignore에 추가하고 각자 채워 쓰기.
+NAVER_NCP_KEY_ID=

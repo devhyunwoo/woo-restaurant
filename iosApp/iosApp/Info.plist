@@ -4,5 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<!-- 네이버 지도 iOS SDK 인증 키. 값은 Configuration/Config.xcconfig 의 NAVER_NCP_KEY_ID 에서 온다. -->
+	<key>NMFNcpKeyId</key>
+	<string>$(NAVER_NCP_KEY_ID)</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>주변 식당·카페·빵집을 지도에 보여주기 위해 위치 정보를 사용합니다.</string>
 </dict>
 </plist>

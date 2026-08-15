@@ -1,6 +1,8 @@
 package com.example.wood_restaurant.di
 
 import android.content.Context
+import com.example.wood_restaurant.location.AndroidLocationProvider
+import com.example.wood_restaurant.location.LocationProvider
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 import org.koin.core.module.Module
@@ -13,4 +15,5 @@ actual val platformModule: Module = module {
             context.getSharedPreferences("woo_restaurant_settings", Context.MODE_PRIVATE)
         )
     }
+    single<LocationProvider> { AndroidLocationProvider(get()) }
 }
