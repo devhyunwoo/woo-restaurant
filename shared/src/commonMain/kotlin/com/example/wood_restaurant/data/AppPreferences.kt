@@ -60,6 +60,13 @@ class AppPreferences(
             }
         }
 
+    /** 지도를 멈추면 자동으로 그 지역을 재검색할지. */
+    var isAutoResearchEnabled: Boolean
+        get() = settings[KEY_AUTO_RESEARCH, false]
+        set(value) {
+            settings[KEY_AUTO_RESEARCH] = value
+        }
+
     fun clear() = settings.clear()
 
     private companion object {
@@ -68,6 +75,7 @@ class AppPreferences(
         const val KEY_RECENT_KEYWORDS = "recent_keywords"
         const val KEY_LAST_LAT = "last_search_lat"
         const val KEY_LAST_LNG = "last_search_lng"
+        const val KEY_AUTO_RESEARCH = "auto_research"
 
         const val MAX_RECENT_KEYWORDS = 8
 

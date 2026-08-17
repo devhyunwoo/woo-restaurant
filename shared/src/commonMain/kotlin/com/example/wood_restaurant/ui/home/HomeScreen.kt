@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +42,7 @@ import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -221,6 +224,7 @@ private fun MapSection(
             onMapClick = viewModel::onSelectionCleared,
             onCameraMoved = viewModel::onCameraMoved,
             isDarkMode = isSystemInDarkTheme(),
+            showMyLocation = state.hasLocationPermission,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -237,12 +241,23 @@ private fun MapSection(
                     onOpenSettings = externalActions::openAppSettings,
                 )
             }
-            if (state.canResearchHere) {
-                ExtendedFloatingActionButton(
-                    onClick = viewModel::onResearchHereClick,
-                    modifier = Modifier.padding(top = 12.dp),
-                    icon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
-                    text = { Text("이 지역 재검색") },
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // 재검색 버튼은 가운데, 자동 토글은 오른쪽. 버튼이 없을 땐 빈 자리로 남겨 토글 위치가 안 흔들리게.
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    if (state.canResearchHere) {
+                        ExtendedFloatingActionButton(
+                            onClick = viewModel::onResearchHereClick,
+                            icon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
+                            text = { Text("이 지역 재검색") },
+                        )
+                    }
+                }
+                AutoResearchToggle(
+                    enabled = state.isAutoResearchEnabled,
+                    onToggle = viewModel::onAutoResearchToggled,
                 )
             }
         }
@@ -289,6 +304,30 @@ private fun MapSection(
                 onOpenLinkClick = { externalActions.openUrl(PlaceLinks.placePageUrl(place)) },
                 onShareClick = { externalActions.share(PlaceLinks.shareText(place)) },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            )
+        }
+    }
+}
+
+/** "지도 멈추면 자동 재검색" 스위치. 지도 위에 떠 있으므로 배경을 깔아 글자가 읽히게 한다. */
+@Composable
+private fun AutoResearchToggle(enabled: Boolean, onToggle: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        shadowElevation = 2.dp,
+        modifier = Modifier.clickable(onClick = onToggle),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text("자동 재검색", style = MaterialTheme.typography.labelMedium)
+            Switch(
+                checked = enabled,
+                onCheckedChange = { onToggle() },
+                modifier = Modifier.scale(0.75f),
             )
         }
     }

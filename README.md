@@ -19,8 +19,10 @@ This is a Kotlin Multiplatform project targeting Android, iOS.
 - 마커/행을 탭하면 하단에 **상세 카드**: 전화 · 길찾기(네이버 지도 앱, 없으면 웹) · 네이버 링크 · 공유 · 찜.
 - **찜**은 기기에 저장되고, "찜만 보기"에선 검색 결과와 무관하게 항상 보인다(반경 무시).
 - **🎲 오늘 뭐 먹지?** — 지금 보이는 목록에서 하나를 무작위로 골라 준다.
-- 최근 검색어, 카테고리별 개수 뱃지, 도보 소요 시간, 지도 300m 이상 이동 시 "이 지역 재검색".
-- 시스템 다크모드를 따르며 지도도 야간 모드로 바뀐다.
+- 최근 검색어, 카테고리별 개수 뱃지, 도보 소요 시간, 지도 300m 이상 이동 시 "이 지역 재검색"(자동 재검색 스위치를 켜면 버튼 없이 바로).
+- 마커는 SDK 클러스터러로 뭉치고(줌아웃 시 숫자 원), 선택한 장소만 위에 크게 따로 그린다.
+- **찜 탭**: 카테고리별 필터, 스와이프 삭제, "지도에서 보기" → 홈이 찜만 보기 모드로 그 장소를 띄운다.
+- 시스템 다크모드를 따르며 지도도 야간 모드로 바뀐다. 위치 권한이 있으면 파란 현재 위치 점이 뜬다.
 
 ## 네이버 지도 / API 키 설정
 
@@ -59,8 +61,9 @@ naver.ncp.apiKey=
   확인할 수 있도록 지금은 `StubRatingSource`(장소 id 기반 결정론적 더미값)를 쓴다.
   실제 값이 생기면 `di/Koin.kt`에서 `RatingSource` 구현만 갈아끼우면 된다.
   더미값을 끄려면 `EmptyRatingSource`로 바꾼다 → UI에 "평점 정보 없음"으로 표시된다.
-- 지역검색은 **한 질의당 최대 5건**, 좌표·반경 파라미터가 없다. `PlaceRepository`가
+- 지역검색은 **한 질의당 최대 5건**, 좌표·반경 파라미터가 없다. `NaverPlaceRepository`가
   카테고리별 키워드로 질의를 쪼개 병렬 호출하고, 반경은 좌표 거리로 직접 걸러낸다.
+- 일 호출 한도(25,000건)를 아끼기 위해 같은 지역(≈100m 격자)·카테고리·키워드는 5분간 캐시한다.
 
 ## Running the apps
 
@@ -76,6 +79,8 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
 
 - Android tests: `./gradlew :shared:testAndroidHostTest`
 - iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
+
+도메인(필터·링크)과 `HomeViewModel`(Orbit test + 페이크 저장소)을 공통 테스트로 검증한다.
 
 ---
 

@@ -11,8 +11,6 @@ import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-const val BASE_URL = "https://jsonplaceholder.typicode.com/"
-
 /** 네이버 검색 오픈API (developers.naver.com). */
 const val NAVER_OPENAPI_BASE_URL = "https://openapi.naver.com/"
 
@@ -22,11 +20,6 @@ const val NCP_MAPS_BASE_URL = "https://naveropenapi.apigw.ntruss.com/"
 private val jsonConfig = Json {
     ignoreUnknownKeys = true
     isLenient = true
-}
-
-fun createHttpClient(): HttpClient = HttpClient {
-    install(ContentNegotiation) { json(jsonConfig) }
-    install(Logging) { level = LogLevel.INFO }
 }
 
 /**
@@ -51,11 +44,6 @@ fun createNcpMapsHttpClient(): HttpClient = HttpClient {
         header("x-ncp-apigw-api-key", SecretKeys.NAVER_NCP_API_KEY)
     }
 }
-
-fun createKtorfit(httpClient: HttpClient): Ktorfit = Ktorfit.Builder()
-    .httpClient(httpClient)
-    .baseUrl(BASE_URL)
-    .build()
 
 fun createNaverOpenApiKtorfit(httpClient: HttpClient): Ktorfit = Ktorfit.Builder()
     .httpClient(httpClient)

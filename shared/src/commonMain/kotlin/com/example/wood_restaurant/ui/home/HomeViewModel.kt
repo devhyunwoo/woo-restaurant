@@ -30,16 +30,16 @@ class HomeViewModel(
     private val preferences: AppPreferences,
 ) : ViewModel(), ContainerHost<HomeState, HomeSideEffect> {
 
-    override val container = container<HomeState, HomeSideEffect>(initialState())
-
-    init {
-        // 찜 목록은 저장소가 진실의 원천. 바뀔 때마다 상태에 반영한다.
-        intent {
+    override val container = container<HomeState, HomeSideEffect>(
+        initialState = initialState(),
+        // init 블록의 intent 대신 onCreate에 두면 테스트에서 runOnCreate()로 시점을 제어할 수 있다.
+        onCreate = {
+            // 찜 목록은 저장소가 진실의 원천. 바뀔 때마다 상태에 반영한다.
             favoritesRepository.favorites.collect { favorites ->
                 reduce { state.copy(favorites = favorites) }
             }
-        }
-    }
+        },
+    )
 
     /** 마지막으로 검색한 위치가 있으면 거기서 시작한다. 권한이 없어도 서울시청 대신 익숙한 곳이 뜬다. */
     private fun initialState(): HomeState {
@@ -49,6 +49,7 @@ class HomeViewModel(
             cameraTarget = start,
             recentKeywords = preferences.recentKeywords,
             favorites = favoritesRepository.favorites.value,
+            isAutoResearchEnabled = preferences.isAutoResearchEnabled,
         )
     }
 
@@ -78,10 +79,30 @@ class HomeViewModel(
         moveToCurrentLocationAndSearch(fallbackToDefault = false)
     }
 
-    /** 지도를 끌어 옮겼을 때. 임계치를 넘으면 재검색 버튼을 노출한다. */
+    /** 지도를 끌어 옮겼을 때. 임계치를 넘으면 재검색 버튼을 노출하거나(자동 모드면) 바로 검색한다. */
     fun onCameraMoved(center: LatLng) = intent {
         val moved = state.searchCenter.distanceTo(center) >= RESEARCH_THRESHOLD_METERS
-        reduce { state.copy(pendingCenter = if (moved) center else null) }
+        if (!moved) {
+            reduce { state.copy(pendingCenter = null) }
+            return@intent
+        }
+        // 찜만 보기 중엔 지도를 옮겨도 검색할 게 없다.
+        if (state.isAutoResearchEnabled && !state.filter.favoritesOnly && !state.isLoading) {
+            search(center)
+        } else {
+            reduce { state.copy(pendingCenter = center) }
+        }
+    }
+
+    fun onAutoResearchToggled() = intent {
+        val enabled = !state.isAutoResearchEnabled
+        preferences.isAutoResearchEnabled = enabled
+        reduce { state.copy(isAutoResearchEnabled = enabled) }
+        // 켜는 순간 이미 옮겨둔 지도가 있으면 바로 따라잡는다.
+        val pending = state.pendingCenter
+        if (enabled && pending != null && !state.filter.favoritesOnly) {
+            search(pending)
+        }
     }
 
     fun onResearchHereClick() = intent {
@@ -165,6 +186,22 @@ class HomeViewModel(
 
     fun onSelectionCleared() = intent {
         reduce { state.copy(selectedPlaceId = null) }
+    }
+
+    /**
+     * 찜 탭에서 "지도에서 보기". 검색 결과에 없는 장소일 수 있으니
+     * 찜만 보기 모드로 전환한 뒤 선택한다 — 그래야 마커와 카드가 확실히 뜬다.
+     */
+    fun onFavoriteOpenedFromList(place: Restaurant) = intent {
+        reduce {
+            state.copy(
+                // 카테고리/별점/키워드 필터에 걸려 안 보이면 곤란하니 정렬만 남기고 초기화한다.
+                filter = PlaceFilter(favoritesOnly = true, sort = state.filter.sort),
+                selectedPlaceId = place.id,
+                cameraTarget = place.position,
+                pendingCenter = null,
+            )
+        }
     }
 
     fun onFavoriteToggled(place: Restaurant) = intent {

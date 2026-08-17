@@ -31,6 +31,8 @@ data class HomeState(
     val regionName: String? = null,
     val hasLocationPermission: Boolean = false,
     val errorMessage: String? = null,
+    /** 켜져 있으면 지도를 멈출 때마다 그 지역을 자동으로 다시 검색한다. */
+    val isAutoResearchEnabled: Boolean = false,
 ) {
     val favoriteIds: Set<String> by lazy { favorites.mapTo(HashSet()) { it.id } }
 
@@ -60,8 +62,8 @@ data class HomeState(
 
     val selectedPlace: Restaurant? get() = places.firstOrNull { it.id == selectedPlaceId }
 
-    /** 지도를 충분히 옮겼으면 "이 지역 재검색" 버튼을 띄운다. */
-    val canResearchHere: Boolean get() = pendingCenter != null
+    /** 지도를 충분히 옮겼으면 "이 지역 재검색" 버튼을 띄운다. 자동 모드에선 버튼 대신 바로 검색하므로 숨긴다. */
+    val canResearchHere: Boolean get() = pendingCenter != null && !isAutoResearchEnabled
 
     private fun source(): List<Restaurant> =
         if (filter.favoritesOnly) {

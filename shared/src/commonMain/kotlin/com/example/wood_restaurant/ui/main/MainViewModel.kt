@@ -15,4 +15,9 @@ class MainViewModel : ViewModel(), ContainerHost<MainState, MainSideEffect> {
             reduce { state.copy(selectedTab = tab) }
         }
     }
+
+    /** 다른 화면에서 프로그램적으로 탭을 바꿀 때. 같은 탭이어도 조용히 넘어간다. */
+    fun switchTo(tab: MainTab) = intent {
+        reduce { state.copy(selectedTab = tab) }
+    }
 }

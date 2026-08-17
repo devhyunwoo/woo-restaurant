@@ -8,7 +8,7 @@ package com.example.wood_restaurant.ui.main
 enum class MainTab(val label: String) {
     HOME("홈"),
     SEARCH("검색"),
-    ORDERS("주문"),
+    FAVORITES("찜"),
     PROFILE("마이"),
 }
 
