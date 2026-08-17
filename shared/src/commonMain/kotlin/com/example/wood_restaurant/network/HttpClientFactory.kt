@@ -17,6 +17,18 @@ const val NAVER_OPENAPI_BASE_URL = "https://openapi.naver.com/"
 /** 네이버 클라우드 플랫폼 Maps API (지오코딩/리버스 지오코딩). */
 const val NCP_MAPS_BASE_URL = "https://naveropenapi.apigw.ntruss.com/"
 
+/** 우리 백엔드(woodrestaurant-server). 인증 헤더 없음. */
+fun createWoodServerHttpClient(): HttpClient = HttpClient {
+    install(ContentNegotiation) { json(jsonConfig) }
+    install(Logging) { level = LogLevel.INFO }
+}
+
+fun createWoodServerKtorfit(httpClient: HttpClient): Ktorfit = Ktorfit.Builder()
+    .httpClient(httpClient)
+    // Ktorfit은 baseUrl이 반드시 "/"로 끝나야 한다. local.properties에 빼먹어도 되게 여기서 보정.
+    .baseUrl(SecretKeys.SERVER_BASE_URL.trimEnd('/') + "/")
+    .build()
+
 private val jsonConfig = Json {
     ignoreUnknownKeys = true
     isLenient = true

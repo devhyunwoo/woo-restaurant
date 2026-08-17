@@ -47,8 +47,21 @@ naver.ncp.apiKey=
 `shared/build.gradle.kts`의 `generateSecretKeys` 태스크가 이 값을 읽어
 `SecretKeys.kt`를 생성한다. 환경변수(`NAVER_NCP_KEY_ID` 등)로도 넣을 수 있다.
 
-> ⚠️ 검색 오픈API의 Client Secret이 앱 바이너리에 들어간다. 실서비스에서는 자체 서버를
-> 프록시로 두고 클라이언트에서는 시크릿을 빼는 게 맞다.
+### 백엔드 경유 (권장)
+
+검색 오픈API의 Client Secret을 앱에 넣지 않으려면 [woodrestaurant-server](https://github.com/devhyunwoo/woodrestaurant-server)를
+띄우고 `local.properties`에 주소만 적는다. 있으면 앱은 네이버 대신 서버를 부른다.
+
+```properties
+# Android 에뮬레이터 → 호스트 PC 는 10.0.2.2. iOS 시뮬레이터는 localhost. 실기기는 PC의 LAN IP.
+server.baseUrl=http://10.0.2.2:8080/
+```
+
+이때 `naver.openapi.*` 는 앱에 없어도 된다(서버 쪽 `application-local.yml`에만).
+디버그 빌드는 로컬 http를 허용해 뒀다(Android: debug 매니페스트 `usesCleartextTraffic`, iOS: `NSAllowsLocalNetworking`).
+
+> ⚠️ 서버 없이 `naver.openapi.*` 를 앱에 넣는 방식은 개발용이다. Client Secret이 앱 바이너리에 들어가므로
+> 스토어에 올리기 전에는 반드시 서버 경유로 바꾼다.
 
 ### 2. iOS
 

@@ -22,6 +22,7 @@ plugins {
  *   naver.openapi.clientSecret=xxxxxx
  *   naver.ncp.apiKeyId=xxxxxxxx       # 리버스 지오코딩 (선택, NCP 콘솔)
  *   naver.ncp.apiKey=xxxxxxxx
+ *   server.baseUrl=http://10.0.2.2:8080/   # 우리 백엔드. 있으면 네이버 직접 호출 대신 이걸 쓴다
  */
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
@@ -36,6 +37,7 @@ val naverOpenApiClientId = secret("naver.openapi.clientId", "NAVER_OPENAPI_CLIEN
 val naverOpenApiClientSecret = secret("naver.openapi.clientSecret", "NAVER_OPENAPI_CLIENT_SECRET")
 val naverNcpApiKeyId = secret("naver.ncp.apiKeyId", "NAVER_NCP_API_KEY_ID")
 val naverNcpApiKey = secret("naver.ncp.apiKey", "NAVER_NCP_API_KEY")
+val serverBaseUrl = secret("server.baseUrl", "WOOD_SERVER_BASE_URL")
 
 val generateSecretKeys by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/secrets/kotlin")
@@ -44,12 +46,14 @@ val generateSecretKeys by tasks.registering {
     val clientSecret = naverOpenApiClientSecret
     val ncpApiKeyId = naverNcpApiKeyId
     val ncpApiKey = naverNcpApiKey
+    val baseUrl = serverBaseUrl
 
     inputs.property("ncpKeyId", ncpKeyId)
     inputs.property("clientId", clientId)
     inputs.property("clientSecret", clientSecret)
     inputs.property("ncpApiKeyId", ncpApiKeyId)
     inputs.property("ncpApiKey", ncpApiKey)
+    inputs.property("serverBaseUrl", baseUrl)
     outputs.dir(outputDir)
 
     doLast {
@@ -66,6 +70,8 @@ val generateSecretKeys by tasks.registering {
                 const val NAVER_OPENAPI_CLIENT_SECRET: String = "$clientSecret"
                 const val NAVER_NCP_API_KEY_ID: String = "$ncpApiKeyId"
                 const val NAVER_NCP_API_KEY: String = "$ncpApiKey"
+                /** 우리 백엔드 주소. 비어 있으면 앱이 네이버를 직접 부른다(키 필요). */
+                const val SERVER_BASE_URL: String = "$baseUrl"
 
                 /** 지역검색 호출 가능 여부. */
                 val isOpenApiConfigured: Boolean
@@ -74,6 +80,10 @@ val generateSecretKeys by tasks.registering {
                 /** 리버스 지오코딩 호출 가능 여부. 없으면 지역명 없이 검색한다. */
                 val isReverseGeocodeConfigured: Boolean
                     get() = NAVER_NCP_API_KEY_ID.isNotBlank() && NAVER_NCP_API_KEY.isNotBlank()
+
+                /** 백엔드 서버를 쓸 수 있는지. 있으면 이쪽이 우선이다 — 시크릿이 앱에 없어도 된다. */
+                val isServerConfigured: Boolean
+                    get() = SERVER_BASE_URL.isNotBlank()
             }
 
             """.trimIndent()
