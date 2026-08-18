@@ -17,8 +17,8 @@ data class NearbyPlacesResponse(
 )
 
 /**
- * 백엔드 API. 네이버 시크릿은 서버가 들고 있으므로 여기엔 인증 헤더가 없다.
- * (지금은 공개 API. 로그인이 생기면 토큰 헤더가 붙는다.)
+ * 백엔드 장소 API. 네이버 시크릿은 서버가 들고 있으므로 여기엔 인증 헤더가 없다.
+ * 공개 API 지만 로그인돼 있으면 HttpClient 의 Auth 플러그인이 Bearer 를 붙여 보낸다.
  */
 interface WoodServerApi {
     @GET("api/v1/places")

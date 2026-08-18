@@ -1,15 +1,20 @@
 package com.example.wood_restaurant.di
 
 import com.example.wood_restaurant.data.AppPreferences
+import com.example.wood_restaurant.data.AuthRepository
+import com.example.wood_restaurant.data.AuthTokenStore
 import com.example.wood_restaurant.data.FavoritesRepository
 import com.example.wood_restaurant.data.NaverPlaceRepository
 import com.example.wood_restaurant.data.PlaceRepository
 import com.example.wood_restaurant.data.RatingSource
+import com.example.wood_restaurant.data.RemoteAuthRepository
 import com.example.wood_restaurant.data.RemotePlaceRepository
 import com.example.wood_restaurant.data.StubRatingSource
 import com.example.wood_restaurant.data.remote.NaverLocalApi
 import com.example.wood_restaurant.data.remote.NaverReverseGeocodeApi
+import com.example.wood_restaurant.data.remote.AuthApi
 import com.example.wood_restaurant.data.remote.WoodServerApi
+import com.example.wood_restaurant.data.remote.createAuthApi
 import com.example.wood_restaurant.data.remote.createNaverLocalApi
 import com.example.wood_restaurant.data.remote.createNaverReverseGeocodeApi
 import com.example.wood_restaurant.data.remote.createWoodServerApi
@@ -20,9 +25,11 @@ import com.example.wood_restaurant.network.createNcpMapsKtorfit
 import com.example.wood_restaurant.network.createWoodServerHttpClient
 import com.example.wood_restaurant.network.createWoodServerKtorfit
 import com.example.wood_restaurant.config.SecretKeys
+import com.example.wood_restaurant.ui.auth.AuthViewModel
 import com.example.wood_restaurant.ui.favorites.FavoritesViewModel
 import com.example.wood_restaurant.ui.home.HomeViewModel
 import com.example.wood_restaurant.ui.main.MainViewModel
+import com.example.wood_restaurant.ui.profile.ProfileViewModel
 import de.jensklingenberg.ktorfit.Ktorfit
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.singleOf
@@ -45,15 +52,18 @@ val networkModule = module {
     single(NcpMaps) { createNcpMapsKtorfit(get(NcpMaps)) }
     single<NaverReverseGeocodeApi> { get<Ktorfit>(NcpMaps).createNaverReverseGeocodeApi() }
 
-    single(WoodServer) { createWoodServerHttpClient() }
+    single(WoodServer) { createWoodServerHttpClient(get()) }
     single(WoodServer) { createWoodServerKtorfit(get(WoodServer)) }
     single<WoodServerApi> { get<Ktorfit>(WoodServer).createWoodServerApi() }
+    single<AuthApi> { get<Ktorfit>(WoodServer).createAuthApi() }
 }
 
 val appModule = module {
     includes(platformModule, networkModule)
     singleOf(::AppPreferences)
     singleOf(::FavoritesRepository)
+    singleOf(::AuthTokenStore)
+    single<AuthRepository> { RemoteAuthRepository(get(), get(), get(WoodServer)) }
 
     // TODO: 자체 백엔드가 붙으면 실제 평점 소스로 교체한다. (EmptyRatingSource로 바꾸면 "정보 없음" 표시)
     single<RatingSource> { StubRatingSource }
@@ -66,6 +76,8 @@ val appModule = module {
     viewModelOf(::MainViewModel)
     viewModelOf(::HomeViewModel)
     viewModelOf(::FavoritesViewModel)
+    viewModelOf(::AuthViewModel)
+    viewModelOf(::ProfileViewModel)
 }
 
 /**

@@ -28,12 +28,14 @@ import androidx.compose.ui.unit.dp
 import com.example.wood_restaurant.ui.favorites.FavoritesScreen
 import com.example.wood_restaurant.ui.home.HomeScreen
 import com.example.wood_restaurant.ui.home.HomeViewModel
+import com.example.wood_restaurant.ui.profile.ProfileScreen
 import org.koin.compose.viewmodel.koinViewModel
 import org.orbitmvi.orbit.compose.collectAsState
 import org.orbitmvi.orbit.compose.collectSideEffect
 
 @Composable
 fun MainScreen(
+    onLoginRequested: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = koinViewModel(),
     // 홈 ViewModel을 여기서 잡아 두면 탭을 오가도 같은 인스턴스가 유지되고,
@@ -78,7 +80,7 @@ fun MainScreen(
                         viewModel.switchTo(MainTab.HOME)
                     },
                 )
-                MainTab.PROFILE -> PlaceholderTabContent(MainTab.PROFILE.label)
+                MainTab.PROFILE -> ProfileScreen(onLoginRequested = onLoginRequested)
             }
         }
     }
